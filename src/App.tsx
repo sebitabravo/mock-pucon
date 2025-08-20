@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, RadialBarChart, RadialBar, PolarAngleAxis, LineChart, Line } from 'recharts';
-import { ChevronDown, Bell, Waves, Wind, Thermometer, Droplets, BarChart2, User, Settings, LogOut, Sun, Moon, Monitor } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, RadialBarChart, RadialBar, PolarAngleAxis, LineChart, Line, BarChart, Bar } from 'recharts';
+import { ChevronDown, Bell, Waves, Wind, Thermometer, Droplets, BarChart2, User, Settings, LogOut, Sun, Moon, Monitor, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
 
@@ -105,6 +105,75 @@ const Sparkline = ({ data, color = '#06b6d4', height = 40 }: {
           />
         </LineChart>
       </ResponsiveContainer>
+    </div>
+  );
+};
+
+// Modal de Pantalla Completa para Gráfico
+const FullscreenChartModal = ({
+  isOpen,
+  onClose,
+  data,
+  metric,
+  timeRange,
+  setTimeRange,
+  unit
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  data: MetricDataPoint[];
+  metric: string;
+  timeRange: TimeRange;
+  setTimeRange: (range: TimeRange) => void;
+  unit: string;
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full h-full max-w-7xl max-h-[90vh] flex flex-col">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-slate-700">
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white capitalize">
+            Análisis Detallado - {metric} ({unit})
+          </h2>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-900 p-1 rounded-lg">
+              {(['30m', '1h', '6h', '24h'] as TimeRange[]).map(range => {
+                const rangeDescriptions = {
+                  '30m': 'Últimos 30 minutos - Vista detallada para monitoreo inmediato',
+                  '1h': 'Última hora - Ideal para detectar cambios recientes',
+                  '6h': 'Últimas 6 horas - Análisis de tendencias a corto plazo',
+                  '24h': 'Últimas 24 horas - Vista completa del comportamiento diario'
+                };
+
+                return (
+                  <CustomTooltip
+                    key={range}
+                    title={`Rango de Tiempo: ${range}`}
+                    content={rangeDescriptions[range]}
+                    position="bottom"
+                  >
+                    <button onClick={() => setTimeRange(range)} className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${timeRange === range ? 'bg-white dark:bg-slate-700 text-cyan-600 dark:text-cyan-400 shadow' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-800'}`}>
+                      {range}
+                    </button>
+                  </CustomTooltip>
+                );
+              })}
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300"
+            >
+              <Minimize2 className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 p-6">
+          <ResponsiveContainer width="100%" height="100%">
+            {getChartComponent(metric, data)}
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
   );
 };
@@ -224,10 +293,15 @@ const CustomTooltip = ({
 }) => {
   const Icon = icon;
   const positionClasses = {
-    top: 'bottom-full mb-2',
-    bottom: 'top-full mt-2',
-    left: 'right-full mr-2',
-    right: 'left-full ml-2'
+    top: 'bottom-full mb-2 left-1/2 transform -translate-x-1/2',
+    bottom: 'top-full mt-2 left-1/2 transform -translate-x-1/2',
+    left: 'right-full mr-2 top-1/2 transform -translate-y-1/2',
+    right: 'left-full ml-2 top-1/2 transform -translate-y-1/2'
+  };
+
+  // Clases especiales para tooltips del aside que no deben solaparse
+  const asidePositionClasses = {
+    right: 'left-full ml-4 top-1/2 transform -translate-y-1/2'
   };
 
   const getTrendColor = (trend?: string) => {
@@ -248,10 +322,15 @@ const CustomTooltip = ({
     }
   };
 
+  // Usar posicionamiento especial para aside si es necesario
+  const finalPositionClasses = position === 'right' && (title.includes('Monitoreo de') || title.includes('Variables'))
+    ? asidePositionClasses.right
+    : positionClasses[position];
+
   return (
     <div className="relative group">
       {children}
-      <div className={`absolute ${positionClasses[position]} w-80 bg-gray-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white text-xs rounded-xl py-3 px-4 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl z-50 pointer-events-none border border-gray-700 dark:border-slate-600`}>
+      <div className={`absolute ${finalPositionClasses} w-72 max-w-xs sm:max-w-sm bg-gray-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white text-xs rounded-xl py-3 px-4 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[9999] pointer-events-none border border-gray-700 dark:border-slate-600`}>
         <div className="flex items-center gap-2 mb-2">
           {Icon && <Icon className="w-4 h-4 text-cyan-400" />}
           <h4 className="font-bold text-sm text-white">{title}</h4>
@@ -285,30 +364,34 @@ const CustomTooltip = ({
 const CustomChartTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-gray-200 dark:border-slate-700 rounded-xl p-4 shadow-xl">
-        <p className="text-gray-600 dark:text-slate-400 text-sm font-medium mb-2">
-          {new Date(label).toLocaleString('es-CL')}
+      <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-gray-200 dark:border-slate-700 rounded-lg p-3 shadow-xl max-w-xs">
+        <p className="text-gray-600 dark:text-slate-400 text-xs font-medium mb-2 text-center">
+          {new Date(label).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
         </p>
-        {payload.map((entry: any, index: number) => (
-          <div key={index} className="flex items-center gap-2 mb-1">
-            <div
-              className="w-3 h-3 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: entry.color }}
-            >
-              {entry.dataKey === 'station1' ? (
-                <Waves className="w-2 h-2 text-white" />
-              ) : (
-                <Droplets className="w-2 h-2 text-white" />
-              )}
+        <div className="flex items-center justify-between gap-4">
+          {payload.map((entry: any, index: number) => (
+            <div key={index} className="flex items-center gap-2">
+              <div
+                className="w-3 h-3 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: entry.color }}
+              >
+                {entry.dataKey === 'station1' ? (
+                  <Waves className="w-2 h-2 text-white" />
+                ) : (
+                  <Droplets className="w-2 h-2 text-white" />
+                )}
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-gray-500 dark:text-slate-400">
+                  {entry.dataKey === 'station1' ? 'E1' : 'E2'}
+                </p>
+                <p className="text-sm font-bold text-gray-900 dark:text-white">
+                  {entry.value.toFixed(1)}
+                </p>
+              </div>
             </div>
-            <span className="text-gray-700 dark:text-slate-300 text-sm font-medium">
-              {entry.name}:
-            </span>
-            <span className="text-gray-900 dark:text-white font-bold">
-              {entry.value.toFixed(1)}
-            </span>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     );
   }
@@ -434,20 +517,128 @@ const ComparisonGauge = ({ data, dataKey, title, tooltipContent }: {
     );
 };
 
+// Función para determinar el tipo de gráfico según la métrica
+const getChartComponent = (metric: string, data: MetricDataPoint[]) => {
+  const chartProps = {
+    data,
+    margin: { top: 5, right: 20, left: -10, bottom: 0 }
+  };
+
+  switch (metric) {
+    case 'flujo':
+      // Área para flujo (representa volumen continuo)
+      return (
+        <AreaChart {...chartProps}>
+          <defs>
+            <linearGradient id="colorStation1" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#34d399" stopOpacity={0.8}/>
+              <stop offset="95%" stopColor="#34d399" stopOpacity={0}/>
+            </linearGradient>
+            <linearGradient id="colorStation2" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.8}/>
+              <stop offset="95%" stopColor="#38bdf8" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.2)" />
+          <XAxis dataKey="time" stroke="#9ca3af" fontSize={12} tickFormatter={(timeStr) => new Date(timeStr).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} />
+          <YAxis stroke="#9ca3af" fontSize={12} label={{ value: 'm³/s', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#9ca3af', fontSize: '12px' } }} />
+          <Tooltip content={<CustomChartTooltip />} cursor={{ stroke: '#06b6d4', strokeWidth: 2, strokeDasharray: '5 5' }} />
+          <Legend />
+          <Area type="monotone" dataKey="station1" name="Estación 1" stroke="#34d399" fillOpacity={1} fill="url(#colorStation1)" />
+          <Area type="monotone" dataKey="station2" name="Estación 2" stroke="#38bdf8" fillOpacity={1} fill="url(#colorStation2)" />
+        </AreaChart>
+      );
+
+    case 'nivel':
+      // Barras para nivel (representa altura discreta)
+      return (
+        <BarChart {...chartProps}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.2)" />
+          <XAxis dataKey="time" stroke="#9ca3af" fontSize={12} tickFormatter={(timeStr) => new Date(timeStr).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} />
+          <YAxis stroke="#9ca3af" fontSize={12} label={{ value: 'm', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#9ca3af', fontSize: '12px' } }} />
+          <Tooltip content={<CustomChartTooltip />} cursor={{ stroke: '#06b6d4', strokeWidth: 2, strokeDasharray: '5 5' }} />
+          <Legend />
+          <Bar dataKey="station1" name="Estación 1" fill="#34d399" opacity={0.8} />
+          <Bar dataKey="station2" name="Estación 2" fill="#38bdf8" opacity={0.8} />
+        </BarChart>
+      );
+
+    case 'caudal':
+      // Líneas para caudal (representa flujo preciso)
+      return (
+        <LineChart {...chartProps}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.2)" />
+          <XAxis dataKey="time" stroke="#9ca3af" fontSize={12} tickFormatter={(timeStr) => new Date(timeStr).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} />
+          <YAxis stroke="#9ca3af" fontSize={12} label={{ value: 'L/s', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#9ca3af', fontSize: '12px' } }} />
+          <Tooltip content={<CustomChartTooltip />} cursor={{ stroke: '#06b6d4', strokeWidth: 2, strokeDasharray: '5 5' }} />
+          <Legend />
+          <Line type="monotone" dataKey="station1" name="Estación 1" stroke="#34d399" strokeWidth={3} dot={{ fill: '#34d399', strokeWidth: 2, r: 4 }} />
+          <Line type="monotone" dataKey="station2" name="Estación 2" stroke="#38bdf8" strokeWidth={3} dot={{ fill: '#38bdf8', strokeWidth: 2, r: 4 }} />
+        </LineChart>
+      );
+
+    case 'velocidad':
+      // Área suave para velocidad (representa movimiento continuo)
+      return (
+        <AreaChart {...chartProps}>
+          <defs>
+            <linearGradient id="colorStation1Velocity" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#34d399" stopOpacity={0.6}/>
+              <stop offset="95%" stopColor="#34d399" stopOpacity={0.1}/>
+            </linearGradient>
+            <linearGradient id="colorStation2Velocity" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.6}/>
+              <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.1}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.2)" />
+          <XAxis dataKey="time" stroke="#9ca3af" fontSize={12} tickFormatter={(timeStr) => new Date(timeStr).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} />
+          <YAxis stroke="#9ca3af" fontSize={12} label={{ value: 'm/s', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#9ca3af', fontSize: '12px' } }} />
+          <Tooltip content={<CustomChartTooltip />} cursor={{ stroke: '#06b6d4', strokeWidth: 2, strokeDasharray: '5 5' }} />
+          <Legend />
+          <Area type="basis" dataKey="station1" name="Estación 1" stroke="#34d399" strokeWidth={2} fillOpacity={1} fill="url(#colorStation1Velocity)" />
+          <Area type="basis" dataKey="station2" name="Estación 2" stroke="#38bdf8" strokeWidth={2} fillOpacity={1} fill="url(#colorStation2Velocity)" />
+        </AreaChart>
+      );
+
+    default:
+      return null;
+  }
+};
+
 // Gráfico Principal de Flujo en el Tiempo
-const TimeFlowChart = ({ data, metric, timeRange, setTimeRange }: {
+const TimeFlowChart = ({ data, metric, timeRange, setTimeRange, unit, isFullscreen, setIsFullscreen }: {
   data: MetricDataPoint[];
   metric: string;
   timeRange: TimeRange;
   setTimeRange: (range: TimeRange) => void;
+  unit: string;
+  isFullscreen: boolean;
+  setIsFullscreen: (fullscreen: boolean) => void;
 }) => (
   <motion.div
     variants={itemVariants}
     className="bg-white dark:bg-slate-800/50 backdrop-blur-sm p-4 rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700/50 col-span-1 md:col-span-2 lg:col-span-4 h-96 flex flex-col"
   >
     <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-white capitalize">Monitoreo de {metric} en Tiempo Real</h3>
-        <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-900 p-1 rounded-lg">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white capitalize">
+          Monitoreo de {metric} en Tiempo Real
+          <span className="text-sm font-normal text-gray-500 dark:text-slate-400 ml-2">({unit})</span>
+        </h3>
+        <div className="flex items-center gap-2">
+          <CustomTooltip
+            title={isFullscreen ? "Salir de Pantalla Completa" : "Pantalla Completa"}
+            content={isFullscreen ? "Volver a la vista normal del dashboard" : "Expandir el gráfico a pantalla completa para mejor análisis"}
+            position="bottom"
+          >
+            <button
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300"
+            >
+              {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </button>
+          </CustomTooltip>
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-900 p-1 rounded-lg">
             {(['30m', '1h', '6h', '24h'] as TimeRange[]).map(range => {
                 const rangeDescriptions = {
                     '30m': 'Últimos 30 minutos - Vista detallada para monitoreo inmediato',
@@ -469,26 +660,12 @@ const TimeFlowChart = ({ data, metric, timeRange, setTimeRange }: {
                     </CustomTooltip>
                 );
             })}
+          </div>
         </div>
     </div>
     <div className="flex-grow">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 5, right: 20, left: -10, bottom: 0 }}>
-            <defs>
-              <linearGradient id="colorStation1" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#34d399" stopOpacity={0.8}/><stop offset="95%" stopColor="#34d399" stopOpacity={0}/></linearGradient>
-              <linearGradient id="colorStation2" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#38bdf8" stopOpacity={0.8}/><stop offset="95%" stopColor="#38bdf8" stopOpacity={0}/></linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.2)" />
-            <XAxis dataKey="time" stroke="#9ca3af" fontSize={12} tickFormatter={(timeStr) => new Date(timeStr).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} />
-            <YAxis stroke="#9ca3af" fontSize={12} />
-            <Tooltip
-                content={<CustomChartTooltip />}
-                cursor={{ stroke: '#06b6d4', strokeWidth: 2, strokeDasharray: '5 5' }}
-            />
-            <Legend />
-            <Area type="monotone" dataKey="station1" name="Estación 1" stroke="#34d399" fillOpacity={1} fill="url(#colorStation1)" />
-            <Area type="monotone" dataKey="station2" name="Estación 2" stroke="#38bdf8" fillOpacity={1} fill="url(#colorStation2)" />
-          </AreaChart>
+          {getChartComponent(metric, data)}
         </ResponsiveContainer>
     </div>
   </motion.div>
@@ -555,6 +732,8 @@ export default function App() {
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('flujo');
   const [timeRange, setTimeRange] = useState<TimeRange>('30m');
   const [theme, setTheme] = useTheme();
+  const [isAsideCollapsed, setIsAsideCollapsed] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Simular carga inicial de datos
   useEffect(() => {
@@ -676,53 +855,96 @@ export default function App() {
       </div>
       <div className="relative flex z-10">
         {/* --- ASIDE / BARRA LATERAL --- */}
-        <aside className="w-20 lg:w-64 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-gray-200 dark:border-slate-800 p-4 flex flex-col transition-all duration-300 h-screen sticky top-0">
-          <CustomTooltip
-            title="HydroFlow - Sistema de Monitoreo"
-            content="Sistema avanzado de monitoreo hidrológico para el Río Claro en Pucón. Proporciona datos en tiempo real sobre flujo, nivel, caudal y velocidad del agua para prevención de riesgos y gestión de recursos hídricos."
-            icon={Waves}
-            position="right"
-          >
-            <div className="flex items-center gap-3 mb-10 cursor-help">
-              <Waves className="w-8 h-8 text-cyan-500" />
-              <h1 className="text-xl font-bold hidden lg:block">HydroFlow</h1>
+        <aside className={`${isAsideCollapsed ? 'w-16' : 'w-20 lg:w-64'} bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-gray-200 dark:border-slate-800 ${isAsideCollapsed ? 'p-3' : 'p-4 lg:p-6'} flex flex-col transition-all duration-300 h-screen sticky top-0`}>
+          <div className="flex items-center justify-between mb-8 lg:mb-12">
+            <div className="relative group">
+              <div className="flex items-center gap-3 cursor-help">
+                <Waves className="w-8 h-8 text-cyan-500" />
+                {!isAsideCollapsed && <h1 className="text-xl font-bold hidden lg:block">Variables</h1>}
+              </div>
+
+              {/* Tooltip específico para el logo */}
+              <div className="absolute left-full ml-6 top-1/2 transform -translate-y-1/2 w-64 bg-gray-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white text-xs rounded-xl py-3 px-4 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[9999] pointer-events-none border border-gray-700 dark:border-slate-600">
+                <div className="flex items-center gap-2 mb-2">
+                  <Waves className="w-4 h-4 text-cyan-400" />
+                  <h4 className="font-bold text-sm text-white">Variables - Sistema de Monitoreo</h4>
+                </div>
+                <p className="text-gray-300 leading-relaxed text-xs">Panel de control para monitorear las variables hidrológicas del Río Claro en Pucón. Selecciona una variable para ver datos detallados en tiempo real.</p>
+              </div>
             </div>
-          </CustomTooltip>
-          <nav className="flex flex-col gap-2">
+
+            <div className="relative group">
+              <button
+                onClick={() => setIsAsideCollapsed(!isAsideCollapsed)}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-300"
+              >
+                {isAsideCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+              </button>
+
+              {/* Tooltip específico para botón de colapso */}
+              <div className="absolute left-full ml-6 top-1/2 transform -translate-y-1/2 w-48 bg-gray-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white text-xs rounded-xl py-2 px-3 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[9999] pointer-events-none border border-gray-700 dark:border-slate-600">
+                <p className="font-bold text-sm text-white mb-1">{isAsideCollapsed ? "Expandir Panel" : "Colapsar Panel"}</p>
+                <p className="text-gray-300 text-xs">{isAsideCollapsed ? "Mostrar etiquetas completas" : "Mostrar solo iconos"}</p>
+              </div>
+            </div>
+          </div>
+          <nav className="flex flex-col gap-3 mb-6">
             {(Object.keys(metricConfig) as MetricType[]).map(metric => {
               const { icon: Icon, tooltip } = metricConfig[metric];
               return (
-                <CustomTooltip
-                  key={metric}
-                  title={`Monitoreo de ${metric.charAt(0).toUpperCase() + metric.slice(1)}`}
-                  content={`${tooltip} Haz clic para cambiar la vista principal a este parámetro y ver datos detallados en tiempo real.`}
-                  icon={Icon}
-                  position="right"
-                >
-                  <button onClick={() => handleMetricChange(metric)} className={`flex items-center gap-3 p-3 rounded-lg transition-colors duration-200 w-full ${selectedMetric === metric ? 'bg-cyan-500/10 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400' : 'hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 dark:text-slate-400'}`}>
+                <div key={metric} className="relative group">
+                  <button onClick={() => handleMetricChange(metric)} className={`flex items-center ${isAsideCollapsed ? 'justify-center' : 'gap-3'} p-3 rounded-lg transition-colors duration-200 w-full ${selectedMetric === metric ? 'bg-cyan-500/10 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400' : 'hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 dark:text-slate-400'}`}>
                     <Icon className="w-5 h-5" />
-                    <span className="hidden lg:block capitalize">{metric}</span>
+                    {!isAsideCollapsed && <span className="hidden lg:block capitalize">{metric}</span>}
                   </button>
-                </CustomTooltip>
+
+                  {/* Tooltip específico para aside con mejor posicionamiento */}
+                  <div className="absolute left-full ml-6 top-1/2 transform -translate-y-1/2 w-64 bg-gray-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white text-xs rounded-xl py-3 px-4 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[9999] pointer-events-none border border-gray-700 dark:border-slate-600">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Icon className="w-4 h-4 text-cyan-400" />
+                      <h4 className="font-bold text-sm text-white">Monitoreo de {metric.charAt(0).toUpperCase() + metric.slice(1)}</h4>
+                    </div>
+                    <p className="text-gray-300 leading-relaxed text-xs">{tooltip}</p>
+                    <div className="mt-2 pt-2 border-t border-gray-700 dark:border-slate-600">
+                      <p className="text-gray-400 text-xs">
+                        💡 <span className="italic">Haz clic para cambiar la vista principal</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </nav>
-          <div className="mt-auto hidden lg:block">
-            <div className="bg-gray-100 dark:bg-slate-800/50 p-3 rounded-lg text-center">
-                <p className="text-xs text-gray-500 dark:text-slate-400">Estado del Sistema</p>
-                <p className="text-sm font-bold text-green-600 dark:text-green-400">Todos los sensores operativos</p>
+          {!isAsideCollapsed && (
+            <div className="mt-auto hidden lg:block">
+              <div className="bg-gray-100 dark:bg-slate-800/50 p-4 rounded-xl text-center mx-2">
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mb-2">Estado del Sistema</p>
+                  <p className="text-sm font-bold text-green-600 dark:text-green-400">Todos los sensores operativos</p>
+              </div>
             </div>
-          </div>
+          )}
+
+          {isAsideCollapsed && (
+            <div className="mt-auto flex justify-center">
+              <CustomTooltip
+                title="Estado del Sistema"
+                content="Todos los sensores están operativos y funcionando correctamente"
+                position="right"
+              >
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse cursor-help"></div>
+              </CustomTooltip>
+            </div>
+          )}
         </aside>
 
         {/* --- CONTENIDO PRINCIPAL --- */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          <header className="flex flex-wrap gap-4 justify-between items-center mb-8">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Sensorificación Río Claro - Pucón</h2>
-              <p className="text-gray-500 dark:text-slate-400">Dashboard de monitoreo en tiempo real.</p>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+          <header className="flex flex-wrap gap-4 justify-between items-start mb-8">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white break-words">Sensorificación Río Claro - Pucón</h2>
+              <p className="text-sm sm:text-base text-gray-500 dark:text-slate-400">Dashboard de monitoreo en tiempo real.</p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-shrink-0">
               <ThemeSwitcher theme={theme} setTheme={setTheme} />
               <CustomTooltip
                 title="Notificaciones del Sistema"
@@ -755,7 +977,15 @@ export default function App() {
               </>
             ) : (
               <>
-                <TimeFlowChart data={chartData} metric={selectedMetric} timeRange={timeRange} setTimeRange={setTimeRange} />
+                <TimeFlowChart
+                  data={chartData}
+                  metric={selectedMetric}
+                  timeRange={timeRange}
+                  setTimeRange={setTimeRange}
+                  unit={metricConfig[selectedMetric].unit}
+                  isFullscreen={isFullscreen}
+                  setIsFullscreen={setIsFullscreen}
+                />
                 <MetricCard
                   icon={metricConfig[selectedMetric].icon}
                   title={selectedMetric.charAt(0).toUpperCase() + selectedMetric.slice(1)}
@@ -787,6 +1017,17 @@ export default function App() {
           </motion.div>
         </main>
       </div>
+
+      {/* Modal de Pantalla Completa */}
+      <FullscreenChartModal
+        isOpen={isFullscreen}
+        onClose={() => setIsFullscreen(false)}
+        data={chartData}
+        metric={selectedMetric}
+        timeRange={timeRange}
+        setTimeRange={setTimeRange}
+        unit={metricConfig[selectedMetric].unit}
+      />
     </div>
   );
 }
