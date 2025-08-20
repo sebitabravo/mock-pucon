@@ -170,7 +170,7 @@ const FullscreenChartModal = ({
         </div>
         <div className="flex-1 p-6">
           <ResponsiveContainer width="100%" height="100%">
-            {getChartComponent(metric, data)}
+            {getChartComponent(metric, data, unit)}
           </ResponsiveContainer>
         </div>
       </div>
@@ -330,7 +330,7 @@ const CustomTooltip = ({
   return (
     <div className="relative group">
       {children}
-      <div className={`absolute ${finalPositionClasses} w-72 max-w-xs sm:max-w-sm bg-gray-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white text-xs rounded-xl py-3 px-4 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[9999] pointer-events-none border border-gray-700 dark:border-slate-600`}>
+      <div className={`absolute ${finalPositionClasses} w-72 max-w-xs sm:max-w-sm bg-gray-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white text-xs rounded-xl py-3 px-4 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[99999] pointer-events-none border border-gray-700 dark:border-slate-600`}>
         <div className="flex items-center gap-2 mb-2">
           {Icon && <Icon className="w-4 h-4 text-cyan-400" />}
           <h4 className="font-bold text-sm text-white">{title}</h4>
@@ -361,7 +361,7 @@ const CustomTooltip = ({
 };
 
 // Tooltip Personalizado para Gráficos
-const CustomChartTooltip = ({ active, payload, label }: any) => {
+const CustomChartTooltip = ({ active, payload, label, unit }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-gray-200 dark:border-slate-700 rounded-lg p-3 shadow-xl max-w-xs">
@@ -386,7 +386,7 @@ const CustomChartTooltip = ({ active, payload, label }: any) => {
                   {entry.dataKey === 'station1' ? 'E1' : 'E2'}
                 </p>
                 <p className="text-sm font-bold text-gray-900 dark:text-white">
-                  {entry.value.toFixed(1)}
+                  {entry.value.toFixed(1)} <span className="text-xs font-normal text-gray-500 dark:text-slate-400">{unit || ''}</span>
                 </p>
               </div>
             </div>
@@ -518,7 +518,7 @@ const ComparisonGauge = ({ data, dataKey, title, tooltipContent }: {
 };
 
 // Función para determinar el tipo de gráfico según la métrica
-const getChartComponent = (metric: string, data: MetricDataPoint[]) => {
+const getChartComponent = (metric: string, data: MetricDataPoint[], unit: string) => {
   const chartProps = {
     data,
     margin: { top: 5, right: 20, left: -10, bottom: 0 }
@@ -542,7 +542,7 @@ const getChartComponent = (metric: string, data: MetricDataPoint[]) => {
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.2)" />
           <XAxis dataKey="time" stroke="#9ca3af" fontSize={12} tickFormatter={(timeStr) => new Date(timeStr).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} />
           <YAxis stroke="#9ca3af" fontSize={12} label={{ value: 'm³/s', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#9ca3af', fontSize: '12px' } }} />
-          <Tooltip content={<CustomChartTooltip />} cursor={{ stroke: '#06b6d4', strokeWidth: 2, strokeDasharray: '5 5' }} />
+          <Tooltip content={<CustomChartTooltip unit={unit} />} cursor={{ stroke: '#06b6d4', strokeWidth: 2, strokeDasharray: '5 5' }} />
           <Legend />
           <Area type="monotone" dataKey="station1" name="Estación 1" stroke="#34d399" fillOpacity={1} fill="url(#colorStation1)" />
           <Area type="monotone" dataKey="station2" name="Estación 2" stroke="#38bdf8" fillOpacity={1} fill="url(#colorStation2)" />
@@ -556,7 +556,7 @@ const getChartComponent = (metric: string, data: MetricDataPoint[]) => {
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.2)" />
           <XAxis dataKey="time" stroke="#9ca3af" fontSize={12} tickFormatter={(timeStr) => new Date(timeStr).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} />
           <YAxis stroke="#9ca3af" fontSize={12} label={{ value: 'm', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#9ca3af', fontSize: '12px' } }} />
-          <Tooltip content={<CustomChartTooltip />} cursor={{ stroke: '#06b6d4', strokeWidth: 2, strokeDasharray: '5 5' }} />
+          <Tooltip content={<CustomChartTooltip unit={unit} />} cursor={{ stroke: '#06b6d4', strokeWidth: 2, strokeDasharray: '5 5' }} />
           <Legend />
           <Bar dataKey="station1" name="Estación 1" fill="#34d399" opacity={0.8} />
           <Bar dataKey="station2" name="Estación 2" fill="#38bdf8" opacity={0.8} />
@@ -570,7 +570,7 @@ const getChartComponent = (metric: string, data: MetricDataPoint[]) => {
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.2)" />
           <XAxis dataKey="time" stroke="#9ca3af" fontSize={12} tickFormatter={(timeStr) => new Date(timeStr).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} />
           <YAxis stroke="#9ca3af" fontSize={12} label={{ value: 'L/s', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#9ca3af', fontSize: '12px' } }} />
-          <Tooltip content={<CustomChartTooltip />} cursor={{ stroke: '#06b6d4', strokeWidth: 2, strokeDasharray: '5 5' }} />
+          <Tooltip content={<CustomChartTooltip unit={unit} />} cursor={{ stroke: '#06b6d4', strokeWidth: 2, strokeDasharray: '5 5' }} />
           <Legend />
           <Line type="monotone" dataKey="station1" name="Estación 1" stroke="#34d399" strokeWidth={3} dot={{ fill: '#34d399', strokeWidth: 2, r: 4 }} />
           <Line type="monotone" dataKey="station2" name="Estación 2" stroke="#38bdf8" strokeWidth={3} dot={{ fill: '#38bdf8', strokeWidth: 2, r: 4 }} />
@@ -594,7 +594,7 @@ const getChartComponent = (metric: string, data: MetricDataPoint[]) => {
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.2)" />
           <XAxis dataKey="time" stroke="#9ca3af" fontSize={12} tickFormatter={(timeStr) => new Date(timeStr).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} />
           <YAxis stroke="#9ca3af" fontSize={12} label={{ value: 'm/s', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: '#9ca3af', fontSize: '12px' } }} />
-          <Tooltip content={<CustomChartTooltip />} cursor={{ stroke: '#06b6d4', strokeWidth: 2, strokeDasharray: '5 5' }} />
+          <Tooltip content={<CustomChartTooltip unit={unit} />} cursor={{ stroke: '#06b6d4', strokeWidth: 2, strokeDasharray: '5 5' }} />
           <Legend />
           <Area type="basis" dataKey="station1" name="Estación 1" stroke="#34d399" strokeWidth={2} fillOpacity={1} fill="url(#colorStation1Velocity)" />
           <Area type="basis" dataKey="station2" name="Estación 2" stroke="#38bdf8" strokeWidth={2} fillOpacity={1} fill="url(#colorStation2Velocity)" />
@@ -665,7 +665,7 @@ const TimeFlowChart = ({ data, metric, timeRange, setTimeRange, unit, isFullscre
     </div>
     <div className="flex-grow">
         <ResponsiveContainer width="100%" height="100%">
-          {getChartComponent(metric, data)}
+          {getChartComponent(metric, data, unit)}
         </ResponsiveContainer>
     </div>
   </motion.div>
@@ -864,7 +864,7 @@ export default function App() {
               </div>
 
               {/* Tooltip específico para el logo */}
-              <div className="absolute left-full ml-6 top-1/2 transform -translate-y-1/2 w-64 bg-gray-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white text-xs rounded-xl py-3 px-4 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[9999] pointer-events-none border border-gray-700 dark:border-slate-600">
+              <div className="absolute left-full ml-6 top-1/2 transform -translate-y-1/2 w-64 bg-gray-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white text-xs rounded-xl py-3 px-4 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[99999] pointer-events-none border border-gray-700 dark:border-slate-600">
                 <div className="flex items-center gap-2 mb-2">
                   <Waves className="w-4 h-4 text-cyan-400" />
                   <h4 className="font-bold text-sm text-white">Variables - Sistema de Monitoreo</h4>
@@ -882,7 +882,7 @@ export default function App() {
               </button>
 
               {/* Tooltip específico para botón de colapso */}
-              <div className="absolute left-full ml-6 top-1/2 transform -translate-y-1/2 w-48 bg-gray-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white text-xs rounded-xl py-2 px-3 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[9999] pointer-events-none border border-gray-700 dark:border-slate-600">
+              <div className="absolute left-full ml-6 top-1/2 transform -translate-y-1/2 w-48 bg-gray-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white text-xs rounded-xl py-2 px-3 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[99999] pointer-events-none border border-gray-700 dark:border-slate-600">
                 <p className="font-bold text-sm text-white mb-1">{isAsideCollapsed ? "Expandir Panel" : "Colapsar Panel"}</p>
                 <p className="text-gray-300 text-xs">{isAsideCollapsed ? "Mostrar etiquetas completas" : "Mostrar solo iconos"}</p>
               </div>
@@ -899,7 +899,7 @@ export default function App() {
                   </button>
 
                   {/* Tooltip específico para aside con mejor posicionamiento */}
-                  <div className="absolute left-full ml-6 top-1/2 transform -translate-y-1/2 w-64 bg-gray-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white text-xs rounded-xl py-3 px-4 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[9999] pointer-events-none border border-gray-700 dark:border-slate-600">
+                  <div className="absolute left-full ml-6 top-1/2 transform -translate-y-1/2 w-64 bg-gray-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white text-xs rounded-xl py-3 px-4 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[99999] pointer-events-none border border-gray-700 dark:border-slate-600">
                     <div className="flex items-center gap-2 mb-2">
                       <Icon className="w-4 h-4 text-cyan-400" />
                       <h4 className="font-bold text-sm text-white">Monitoreo de {metric.charAt(0).toUpperCase() + metric.slice(1)}</h4>
