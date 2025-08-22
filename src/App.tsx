@@ -3,6 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { ChevronDown, Bell, Waves, Wind, Thermometer, Droplets, BarChart2, User, Settings, LogOut, Sun, Moon, Monitor, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
+import { RioClaroStationsMap } from './components/maps';
 
 // --- TIPOS DE DATOS (TYPESCRIPT) ---
 type MetricDataPoint = {
@@ -1014,6 +1015,16 @@ export default function App() {
                 <TemperatureCard temperatureData={temperatureData} />
               </>
             )}
+          </motion.div>
+
+          {/* Mapa Climático - Nueva sección */}
+          <motion.div
+            className="mt-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <RioClaroStationsMap />
           </motion.div>
         </main>
       </div>
