@@ -40,13 +40,23 @@ interface MapType {
 const generateStationData = (): StationData[] => {
   const now = new Date();
 
+  // Simular diferentes estados de estaciones para demostrar los colores
+  const statuses: StationData['status'][] = ['operational', 'operational', 'warning', 'operational'];
+  const randomStatus = () => {
+    const rand = Math.random();
+    if (rand < 0.7) return 'operational';
+    if (rand < 0.9) return 'warning';
+    if (rand < 0.98) return 'error';
+    return 'offline';
+  };
+
   return [
     {
       id: 'station1',
       name: 'Estación 1',
       location: 'Río Pucón Norte',
       coordinates: [-39.2706, -71.9520],
-      status: 'operational',
+      status: randomStatus(),
       lastUpdate: new Date(now.getTime() - Math.random() * 300000), // Últimos 5 minutos
       sensors: {
         flujo: {
@@ -87,7 +97,7 @@ const generateStationData = (): StationData[] => {
       name: 'Estación 2',
       location: 'Río Pucón Sur',
       coordinates: [-39.2856, -71.9420],
-      status: 'operational',
+      status: randomStatus(),
       lastUpdate: new Date(now.getTime() - Math.random() * 300000), // Últimos 5 minutos
       sensors: {
         flujo: {
@@ -153,8 +163,8 @@ const mapTypes: MapType[] = [
     id: 'terrain',
     name: 'Terreno',
     description: 'Vista de terreno con sombreado de relieve',
-    url: 'https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="http://stamen.com">Stamen Design</a>'
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}',
+    attribution: '&copy; <a href="https://www.esri.com/">Esri</a>'
   }
 ];
 
@@ -304,7 +314,7 @@ const RioClaroStationsMap: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row h-96 lg:h-[500px]">
+      <div className="flex flex-col lg:flex-row h-96 lg:h-[600px]">
         {/* Mapa */}
         <div className="flex-1 relative">
           <MapContainer
@@ -388,6 +398,74 @@ const RioClaroStationsMap: React.FC = () => {
               </Marker>
             ))}
           </MapContainer>
+
+          {/* Leyenda fija en el mapa - Mejorada */}
+          <div className="absolute bottom-4 left-4 z-[1000] bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 p-4 max-w-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <MapPin className="w-4 h-4 text-cyan-500" />
+              <h4 className="font-semibold text-gray-800 dark:text-white text-sm">
+                Estaciones de Monitoreo
+              </h4>
+            </div>
+
+            {/* Estados de estaciones */}
+            <div className="space-y-2 mb-4">
+              <h5 className="text-xs font-medium text-gray-600 dark:text-slate-400 uppercase tracking-wide">
+                Estados
+              </h5>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { status: 'operational', color: '#10b981', label: 'Operacional', icon: '✅' },
+                  { status: 'warning', color: '#f59e0b', label: 'Advertencia', icon: '⚠️' },
+                  { status: 'error', color: '#ef4444', label: 'Error', icon: '❌' },
+                  { status: 'offline', color: '#6b7280', label: 'Fuera de línea', icon: '⚫' }
+                ].map((item, index) => (
+                  <div key={index} className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+                    <div
+                      className="w-3 h-3 rounded-full flex-shrink-0 ring-2 ring-white dark:ring-slate-800"
+                      style={{ backgroundColor: item.color }}
+                    ></div>
+                    <span className="text-xs text-gray-700 dark:text-slate-300 font-medium">
+                      {item.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Sensores monitoreados */}
+            <div className="border-t border-gray-200 dark:border-slate-600 pt-3">
+              <h5 className="text-xs font-medium text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-2">
+                Sensores
+              </h5>
+              <div className="grid grid-cols-2 gap-1 text-xs">
+                <div className="flex items-center gap-1">
+                  <Waves className="w-3 h-3 text-blue-500" />
+                  <span className="text-gray-600 dark:text-slate-400">Flujo</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <BarChart2 className="w-3 h-3 text-green-500" />
+                  <span className="text-gray-600 dark:text-slate-400">Nivel</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Droplets className="w-3 h-3 text-cyan-500" />
+                  <span className="text-gray-600 dark:text-slate-400">Caudal</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Wind className="w-3 h-3 text-purple-500" />
+                  <span className="text-gray-600 dark:text-slate-400">Velocidad</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Información adicional */}
+            <div className="border-t border-gray-200 dark:border-slate-600 pt-3 mt-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500 dark:text-slate-400">Actualización:</span>
+                <span className="text-cyan-600 dark:text-cyan-400 font-medium">Cada 3s</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Panel lateral con detalles */}

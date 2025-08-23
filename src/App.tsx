@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, RadialBarChart, RadialBar, PolarAngleAxis, LineChart, Line, BarChart, Bar } from 'recharts';
-import { ChevronDown, Bell, Waves, Wind, Thermometer, Droplets, BarChart2, User, Settings, LogOut, Sun, Moon, Monitor, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
+import { ChevronDown, Bell, Waves, Wind, Thermometer, Droplets, BarChart2, User, Settings, LogOut, Sun, Moon, Monitor, ChevronLeft, ChevronRight, Maximize2, Minimize2, FileText, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
 import { RioClaroStationsMap } from './components/maps';
+import { useOptimizedData, useOptimizedChartData, useOptimizedLatestData, useOptimizedMetrics, useOptimizedSparklineData, useOptimizedTemperatureData } from './hooks/useOptimizedData';
+import ReportsPanel from './components/sidebar/ReportsPanel';
 
 // --- TIPOS DE DATOS (TYPESCRIPT) ---
-type MetricDataPoint = {
+export type MetricDataPoint = {
   time: Date;
   station1: number;
   station2: number;
 };
-type MetricType = 'flujo' | 'nivel' | 'caudal' | 'velocidad';
+export type MetricType = 'flujo' | 'nivel' | 'caudal' | 'velocidad';
 type Theme = 'light' | 'dark' | 'system';
 type TimeRange = '1h' | '6h' | '24h' | '30m';
 
@@ -728,99 +730,28 @@ const ThemeSwitcher = ({ theme, setTheme }: { theme: Theme; setTheme: (theme: Th
 
 // --- COMPONENTE PRINCIPAL DE LA APP ---
 export default function App() {
-  const [fullData, setFullData] = useState<MetricDataPoint[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('flujo');
   const [timeRange, setTimeRange] = useState<TimeRange>('30m');
   const [theme, setTheme] = useTheme();
   const [isAsideCollapsed, setIsAsideCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showReportsPanel, setShowReportsPanel] = useState(false);
+  const [globalDateRange, setGlobalDateRange] = useState({
+    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 días atrás
+    endDate: new Date()
+  });
 
-  // Simular carga inicial de datos
-  useEffect(() => {
-    const loadData = async () => {
-      // Simular tiempo de carga
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setFullData(generateFullDayData());
-      setIsLoading(false);
-    };
-    loadData();
-  }, []);
+  // Usar hooks optimizados para mejor rendimiento
+  const { fullData, isLoading } = useOptimizedData();
 
-  // Simula la actualización de datos en tiempo real cada 3 segundos.
-  useEffect(() => {
-    if (isLoading) return;
 
-    const interval = setInterval(() => {
-      setFullData(prevData => {
-        const now = new Date();
-        const newDataPoint = {
-          time: now,
-          station1: 100 + Math.sin(now.getTime() / 100000) * 15 + Math.random() * 10 - 5,
-          station2: 105 + Math.cos(now.getTime() / 80000) * 15 + Math.random() * 10 - 5,
-        };
-        return [...prevData.slice(1), newDataPoint];
-      });
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [isLoading]);
 
-  // Filtra los datos según el rango de tiempo seleccionado
-  const chartData = useMemo(() => {
-    if (isLoading || fullData.length === 0) return [];
-    const now = new Date();
-    const minutesAgo = { '30m': 30, '1h': 60, '6h': 360, '24h': 1440 }[timeRange];
-    const filterDate = new Date(now.getTime() - minutesAgo * 60000);
-    return fullData.filter(d => d.time > filterDate);
-  }, [fullData, timeRange, isLoading]);
-
-  const latestData = useMemo(() => {
-    if (isLoading || fullData.length === 0) return { station1: 0, station2: 0 };
-    return fullData[fullData.length - 1];
-  }, [fullData, isLoading]);
-
-  // Métricas calculadas para mostrar en las tarjetas.
-  const metrics = useMemo(() => ({
-    flujo: { station1: latestData.station1 * 1.2, station2: latestData.station2 * 1.1 },
-    nivel: { station1: latestData.station1 / 50, station2: latestData.station2 / 48 },
-    caudal: { station1: latestData.station1 * 15, station2: latestData.station2 * 14 },
-    velocidad: { station1: latestData.station1 / 60, station2: latestData.station2 / 58 },
-  }), [latestData]);
-
-  // Datos para sparklines (últimos 20 puntos)
-  const sparklineData = useMemo(() => {
-    if (isLoading || fullData.length === 0) return { station1: [], station2: [] };
-
-    const recentData = fullData.slice(-20);
-    const multipliers = {
-      flujo: { station1: 1.2, station2: 1.1 },
-      nivel: { station1: 1/50, station2: 1/48 },
-      caudal: { station1: 15, station2: 14 },
-      velocidad: { station1: 1/60, station2: 1/58 },
-    };
-
-    return {
-      station1: recentData.map(d => ({
-        value: d.station1 * multipliers[selectedMetric].station1,
-        time: d.time
-      })),
-      station2: recentData.map(d => ({
-        value: d.station2 * multipliers[selectedMetric].station2,
-        time: d.time
-      }))
-    };
-  }, [fullData, selectedMetric, isLoading]);
-
-  // Datos de temperatura (simulados basados en promedio de estaciones)
-  const temperatureData = useMemo(() => {
-    if (isLoading || fullData.length === 0) return [];
-
-    const recentData = fullData.slice(-20);
-    return recentData.map(d => ({
-      value: 12.5 + Math.sin(d.time.getTime() / 1000000) * 2 + Math.random() * 0.5 - 0.25,
-      time: d.time
-    }));
-  }, [fullData, isLoading]);
+  // Usar hooks optimizados para mejor rendimiento
+  const chartData = useOptimizedChartData(fullData, timeRange, isLoading);
+  const latestData = useOptimizedLatestData(fullData, isLoading);
+  const metrics = useOptimizedMetrics(latestData);
+  const sparklineData = useOptimizedSparklineData(fullData, selectedMetric, isLoading);
+  const temperatureData = useOptimizedTemperatureData(fullData, isLoading);
 
   const handleMetricChange = useCallback((metric: MetricType) => { setSelectedMetric(metric); }, []);
 
@@ -856,7 +787,7 @@ export default function App() {
       </div>
       <div className="relative flex z-10">
         {/* --- ASIDE / BARRA LATERAL --- */}
-        <aside className={`${isAsideCollapsed ? 'w-16' : 'w-20 lg:w-64'} bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-gray-200 dark:border-slate-800 ${isAsideCollapsed ? 'p-3' : 'p-4 lg:p-6'} flex flex-col transition-all duration-300 h-screen sticky top-0`}>
+        <aside className={`${isAsideCollapsed ? 'w-16' : 'w-20 lg:w-64'} bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-gray-200 dark:border-slate-800 ${isAsideCollapsed ? 'p-3' : 'p-4 lg:p-6'} flex flex-col transition-all duration-300 h-screen sticky top-0 z-50`}>
           <div className="flex items-center justify-between mb-8 lg:mb-12">
             <div className="relative group">
               <div className="flex items-center gap-3 cursor-help">
@@ -916,6 +847,37 @@ export default function App() {
               );
             })}
           </nav>
+
+          {/* Línea separadora */}
+          <div className="border-t border-gray-200 dark:border-slate-700 mb-4"></div>
+
+          {/* Botón de Reportes */}
+          <div className="mb-6">
+            <div className="relative group">
+              <button
+                onClick={() => setShowReportsPanel(!showReportsPanel)}
+                className={`flex items-center ${isAsideCollapsed ? 'justify-center' : 'gap-3'} p-3 rounded-lg transition-colors duration-200 w-full ${showReportsPanel ? 'bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400' : 'hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 dark:text-slate-400'}`}
+              >
+                <FileText className="w-5 h-5" />
+                {!isAsideCollapsed && <span className="hidden lg:block font-medium">Reportes</span>}
+              </button>
+
+              {/* Tooltip para reportes */}
+              <div className="absolute left-full ml-6 top-1/2 transform -translate-y-1/2 w-64 bg-gray-900/95 dark:bg-slate-800/95 backdrop-blur-md text-white text-xs rounded-xl py-3 px-4 opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-2xl z-[99999] pointer-events-none border border-gray-700 dark:border-slate-600">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="w-4 h-4 text-purple-400" />
+                  <h4 className="font-bold text-sm text-white">Sistema de Reportes</h4>
+                </div>
+                <p className="text-gray-300 text-xs mb-2">Genera reportes profesionales con análisis IA avanzado de todas las variables monitoreadas.</p>
+                <div className="text-xs text-purple-300">
+                  • Formatos: PDF, Excel, CSV<br/>
+                  • Análisis inteligente incluido<br/>
+                  • Gráficos y estadísticas
+                </div>
+              </div>
+            </div>
+          </div>
+
           {!isAsideCollapsed && (
             <div className="mt-auto hidden lg:block">
               <div className="bg-gray-100 dark:bg-slate-800/50 p-4 rounded-xl text-center mx-2">
@@ -939,13 +901,72 @@ export default function App() {
         </aside>
 
         {/* --- CONTENIDO PRINCIPAL --- */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden relative">
+          {/* Panel de Reportes */}
+          {showReportsPanel && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden" onClick={() => setShowReportsPanel(false)}>
+              <div className="absolute right-0 top-0 h-full w-80 bg-white dark:bg-slate-900 shadow-2xl overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                <div className="p-4 border-b border-gray-200 dark:border-slate-700">
+                  <button
+                    onClick={() => setShowReportsPanel(false)}
+                    className="float-right text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <ReportsPanel />
+              </div>
+            </div>
+          )}
+
+          {/* Panel de Reportes para desktop */}
+          {showReportsPanel && (
+            <div className="hidden lg:block fixed right-4 top-4 bottom-4 w-80 z-30">
+              <div className="h-full bg-white dark:bg-slate-900 shadow-2xl rounded-lg overflow-y-auto">
+                <div className="p-4 border-b border-gray-200 dark:border-slate-700">
+                  <button
+                    onClick={() => setShowReportsPanel(false)}
+                    className="float-right text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <ReportsPanel />
+              </div>
+            </div>
+          )}
           <header className="flex flex-wrap gap-4 justify-between items-start mb-8">
             <div className="min-w-0 flex-1">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white break-words">Sensorificación Río Claro - Pucón</h2>
               <p className="text-sm sm:text-base text-gray-500 dark:text-slate-400">Dashboard de monitoreo en tiempo real.</p>
             </div>
             <div className="flex items-center gap-4 flex-shrink-0">
+              {/* Filtro de Fechas Global */}
+              <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 px-3 py-2">
+                <Calendar className="w-4 h-4 text-cyan-500" />
+                <div className="flex items-center gap-2 text-sm">
+                  <input
+                    type="date"
+                    value={globalDateRange.startDate.toISOString().split('T')[0]}
+                    onChange={(e) => setGlobalDateRange(prev => ({
+                      ...prev,
+                      startDate: new Date(e.target.value)
+                    }))}
+                    className="bg-transparent border-none text-gray-700 dark:text-slate-300 text-xs focus:outline-none"
+                  />
+                  <span className="text-gray-400">-</span>
+                  <input
+                    type="date"
+                    value={globalDateRange.endDate.toISOString().split('T')[0]}
+                    onChange={(e) => setGlobalDateRange(prev => ({
+                      ...prev,
+                      endDate: new Date(e.target.value)
+                    }))}
+                    className="bg-transparent border-none text-gray-700 dark:text-slate-300 text-xs focus:outline-none"
+                  />
+                </div>
+              </div>
+
               <ThemeSwitcher theme={theme} setTheme={setTheme} />
               <CustomTooltip
                 title="Notificaciones del Sistema"
