@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { useDashboard } from '../../contexts/DashboardContext';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import MainContent from './MainContent';
@@ -17,7 +16,6 @@ const containerVariants = {
 };
 
 const Layout: React.FC = () => {
-  const { state } = useDashboard();
 
   return (
     <div className="relative bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-white min-h-screen font-sans transition-colors duration-300">
